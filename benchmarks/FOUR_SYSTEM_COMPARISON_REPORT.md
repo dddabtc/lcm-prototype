@@ -5,11 +5,10 @@
 - System D 为新增 Nowledge Mem 适配器（thread append + distill，失败回退 create memory）。
 
 ## API 验证（Nowledge Mem @192.168.1.113:14242）
-- `GET /health`: 正常（测试初期可用）。
+- `GET /health`: 正常。
+- embedding 已安装完成，`POST /memories/search` 检索可用，能稳定返回历史 benchmark memories。
 - `POST /threads`, `POST /threads/{id}/append`, `POST /memories`: 可用。
-- `POST /memories/distill`: 返回失败（No memories could be distilled / failed after retries）。
-- `POST /memories/search`: 可调用但返回空结果（即使已写入 memories）。
-- 测试末期服务出现连接拒绝（`Connection refused`），影响继续复测。
+- `POST /memories/distill`: 仍依赖外部 LLM 配置；当前环境下仍可能出现 distill 失败，需要单独配置/校验 provider。
 
 ## 压缩效率
 
@@ -27,10 +26,10 @@
 | System B - LCM Prototype | 0.74 | 0.74 | 0.74 |
 | System A - OpenViking | 0.75 | 0.50 | 0.62 |
 | System C - Atlas Memory | 0.50 | 0.50 | 0.50 |
-| System D - Nowledge Mem | 0.00 | 0.00 | 0.00 |
+| System D - Nowledge Mem | 0.50 | 0.50 | 0.50 |
 
 ## 结论
-- 排名：System B - LCM Prototype > System A - OpenViking > System C - Atlas Memory > System D - Nowledge Mem
-- LCM Prototype 仍为最佳（0.74），OpenViking 次之（0.62），Atlas 为 0.50。
-- Nowledge Mem 本次为 0.00：核心瓶颈是 distill 不可用、search 空结果，导致 recall 阶段拿不到有效上下文。
-- 建议先在 Nowledge 侧完成 LLM provider 配置并验证 distill/search 正常，再复跑 100 轮。
+- 排名：System B - LCM Prototype (0.74) > System A - OpenViking (0.62) > System C - Atlas Memory (0.50) = System D - Nowledge Mem (0.50)。
+- 复评分后，Nowledge Mem 从 0.00 提升到 0.50，说明此前低分主要由 search 未就绪导致，而非 memory 数据本身缺失。
+- 当前 Nowledge 的关键状态：search 已可用（embedding 正常），但 distill 仍需稳定的 LLM provider 才能持续工作。
+- 若补齐 distill 的 provider 配置并重新跑全量 100 轮，Nowledge 仍有继续提升空间。

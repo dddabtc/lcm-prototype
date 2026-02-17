@@ -11,14 +11,14 @@ from .store import Message
 
 
 class Compactor:
-    """Three-stage compactor with deterministic fallback and optional Gemini-backed LLM compression."""
+    """Three-stage compactor with deterministic fallback and optional Kimi-backed LLM compression."""
 
     def __init__(
         self,
         *,
         token_counter: Callable[[str], int] | None = None,
-        model: str = "gemini-2.5-flash",
-        api_base: str = "https://generativelanguage.googleapis.com/v1beta/openai",
+        model: str = "kimi-k2.5",
+        api_base: str = "https://api.moonshot.cn/v1",
         api_key: str | None = None,
         timeout: float = 20.0,
     ):
@@ -27,7 +27,7 @@ class Compactor:
         self.api_base = api_base.rstrip("/")
         self.timeout = timeout
         disable_llm = os.getenv("LCM_DISABLE_LLM", "0") == "1"
-        self.api_key = None if disable_llm else (api_key or os.getenv("GEMINI_API_KEY") or self._load_key_from_openclaw_config())
+        self.api_key = None if disable_llm else (api_key or os.getenv("KIMI_API_KEY") or self._load_key_from_openviking_config())
         self._client = httpx.Client(timeout=self.timeout)
         self.compress_stats: dict[str, int] = {
             "normal": 0,
@@ -40,13 +40,13 @@ class Compactor:
         return max(1, len(text.split())) if text.strip() else 0
 
     @staticmethod
-    def _load_key_from_openclaw_config() -> str | None:
-        cfg = Path("/home/ubuntu/.openclaw/openclaw.json")
+    def _load_key_from_openviking_config() -> str | None:
+        cfg = Path("/home/ubuntu/.openviking/ov.conf")
         if not cfg.exists():
             return None
         try:
             content = json.loads(cfg.read_text(encoding="utf-8"))
-            return content["models"]["providers"]["google-free-3"]["apiKey"]
+            return content.get("vlm", {}).get("api_key")
         except Exception:
             return None
 
@@ -58,28 +58,43 @@ class Compactor:
 
     def _llm_compress(self, messages: list[Message], style: str, max_tokens: int) -> str:
         if not self.api_key:
-            raise RuntimeError("Gemini API key is not configured")
+            raise RuntimeError("Kimi API key is not configured")
 
         source = self._build_source_text(messages)
-        instruction = (
-            "You are a context compactor for long conversation memory. "
-            f"Produce a {style} summary under {max_tokens} words. "
-            "Preserve key facts, decisions, constraints, names, numbers, and unresolved TODOs. "
-            "Use concise plain text only."
-        )
+        if style == "aggressive":
+            system = "你是记忆压缩器。将以下对话极度压缩为要点列表，只保留最核心的事实和决策。用中文输出。"
+        elif style == "normal":
+            system = "你是记忆压缩器。将以下对话压缩为详细摘要，保留所有关键事实、人名、技术细节、决策和数字。用中文输出。"
+        else:
+            system = "你是记忆压缩器。保留关键信息，压缩冗余。用中文输出。"
+
         payload = {
             "model": self.model,
             "messages": [
-                {"role": "system", "content": instruction},
-                {"role": "user", "content": source},
+                {"role": "system", "content": system},
+                {"role": "user", "content": f"请压缩以下对话：\n\n{source}"},
             ],
-            "temperature": 0.1,
+            "temperature": 0.3,
+            "max_tokens": 2000,
         }
         url = f"{self.api_base}/chat/completions"
-        resp = self._client.post(url, headers={"Authorization": f"Bearer {self.api_key}"}, json=payload)
+        resp = self._client.post(
+            url,
+            headers={"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"},
+            json=payload,
+        )
+        if resp.status_code >= 400 and "only 1 is allowed" in resp.text:
+            payload["temperature"] = 1
+            resp = self._client.post(
+                url,
+                headers={"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"},
+                json=payload,
+            )
         resp.raise_for_status()
         data = resp.json()
         text = data["choices"][0]["message"]["content"].strip()
+        import time
+        time.sleep(2)
         return f"[{style.upper()}] {text}"
 
     def normal_compress(self, messages: list[Message], target_tokens: int | None = None) -> str:
