@@ -2,7 +2,15 @@
 
 A Python prototype implementing core ideas from **Lossless Context Management (LCM)** for long-horizon agent memory and context control.
 
-## Paper Motivation (LCM)
+## Original Paper
+
+📄 **LCM: Lossless Context Management**
+- Author: Clint Ehrlich, Voltropy PBC
+- Date: 2026-02-14
+- PDF: [`docs/LCM-paper-voltropy-2026.pdf`](docs/LCM-paper-voltropy-2026.pdf)
+- Source: https://papers.voltropy.com/LCM
+
+### Key Ideas
 LCM emphasizes preserving original information while enabling bounded-context operation via:
 - Immutable raw record storage
 - Hierarchical summaries with pointers back to originals
