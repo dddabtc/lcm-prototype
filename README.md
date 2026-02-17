@@ -37,13 +37,16 @@ pytest
 
 ## Benchmark: Memory System Comparison
 
-Four memory systems tested on 100-round conversational recall (Qwen3.5+ as LLM Judge):
+Five system configurations tested on 100-round conversational recall (Qwen3.5+ as LLM Judge):
 
 | System | Round 85 | Round 95 | Overall |
 |--------|----------|----------|---------|
 | LCM Prototype | 0.74 | 0.74 | **0.74** |
+| Atlas + LCM | 0.74 | 0.73 | **0.73** |
 | OpenViking | 0.75 | 0.50 | 0.62 |
 | Atlas Memory | 0.50 | 0.50 | 0.50 |
 | Nowledge Mem | 0.50 | 0.50 | 0.50 |
+
+**Key finding**: Integrating LCM's three-stage compactor into Atlas Memory boosted recall from 0.50 → 0.73 (+46%), confirming the compaction strategy as the primary differentiator.
 
 → [Detailed Report](benchmarks/FOUR_SYSTEM_COMPARISON_REPORT.md)
