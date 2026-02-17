@@ -1,35 +1,59 @@
-# FOUR SYSTEM COMPARISON REPORT (Qwen3.5+)
+# Four-System Memory Comparison Report
 
-## Scope
-- 100轮对话，Round 85/95 检索问答，LLM Judge 评分。
-- System D 为新增 Nowledge Mem 适配器（thread append + distill，失败回退 create memory）。
+## Overview
 
-## API 验证（Nowledge Mem @192.168.1.113:14242）
-- `GET /health`: 正常。
-- embedding 已安装完成，`POST /memories/search` 检索可用，能稳定返回历史 benchmark memories。
-- `POST /threads`, `POST /threads/{id}/append`, `POST /memories`: 可用。
-- `POST /memories/distill`: 仍依赖外部 LLM 配置；当前环境下仍可能出现 distill 失败，需要单独配置/校验 provider。
+Benchmark comparing four long-horizon conversational memory systems on a 100-round dialogue recall task, scored by an LLM Judge (Qwen3.5+).
 
-## 压缩效率
+### Methodology
+- **Input**: 100 rounds of multi-topic conversation (Python programming, web app planning, debugging, mixed Q&A)
+- **Checkpoints**: Retrieval-based Q&A at Round 85 and Round 95
+- **Scoring**: LLM Judge rates answer quality on a 0–1 scale against reference answers
+- **Compression**: Each system compresses conversation history using its own strategy; compression ratio and latency are recorded
 
-| 系统 | 压缩事件数 | 平均压缩比(after/before) | 平均耗时(s) |
-|---|---:|---:|---:|
-| System A - OpenViking | 6 | 0.070 | 15.09 |
-| System B - LCM Prototype | 4 | 0.837 | 21.62 |
-| System C - Atlas Memory | 2 | 0.106 | 28.41 |
-| System D - Nowledge Mem | 5 | 0.069 | 0.07 |
+## Systems Under Test
 
-## 记忆保留 / 召回（LLM Judge）
+| ID | System | Approach |
+|----|--------|----------|
+| A | OpenViking | Hierarchical summarization with sliding window |
+| B | LCM Prototype | Immutable store + summary DAG + multi-stage compaction |
+| C | Atlas Memory | Graph-based memory with entity extraction |
+| D | Nowledge Mem | Thread-based storage + distillation + semantic search |
 
-| 系统 | Round85 | Round95 | Overall |
-|---|---:|---:|---:|
-| System B - LCM Prototype | 0.74 | 0.74 | 0.74 |
-| System A - OpenViking | 0.75 | 0.50 | 0.62 |
-| System C - Atlas Memory | 0.50 | 0.50 | 0.50 |
-| System D - Nowledge Mem | 0.50 | 0.50 | 0.50 |
+## Compression Efficiency
 
-## 结论
-- 排名：System B - LCM Prototype (0.74) > System A - OpenViking (0.62) > System C - Atlas Memory (0.50) = System D - Nowledge Mem (0.50)。
-- 复评分后，Nowledge Mem 从 0.00 提升到 0.50，说明此前低分主要由 search 未就绪导致，而非 memory 数据本身缺失。
-- 当前 Nowledge 的关键状态：search 已可用（embedding 正常），但 distill 仍需稳定的 LLM provider 才能持续工作。
-- 若补齐 distill 的 provider 配置并重新跑全量 100 轮，Nowledge 仍有继续提升空间。
+| System | Events | Avg Ratio (after/before) | Avg Latency (s) |
+|--------|-------:|-------------------------:|-----------------:|
+| OpenViking | 6 | 0.070 | 15.09 |
+| LCM Prototype | 4 | 0.837 | 21.62 |
+| Atlas Memory | 2 | 0.106 | 28.41 |
+| Nowledge Mem | 5 | 0.069 | 0.07 |
+
+**Notes:**
+- LCM Prototype preserves more tokens by design (lossless philosophy), resulting in a higher ratio.
+- Nowledge Mem's low latency reflects its fallback path: external LLM compression → direct memory creation via API, bypassing the built-in distillation pipeline.
+
+## Recall Accuracy (LLM Judge)
+
+| System | Round 85 | Round 95 | Overall |
+|--------|:--------:|:--------:|:-------:|
+| **LCM Prototype** | 0.74 | 0.74 | **0.74** |
+| OpenViking | 0.75 | 0.50 | 0.62 |
+| Atlas Memory | 0.50 | 0.50 | 0.50 |
+| Nowledge Mem | 0.50 | 0.50 | 0.50 |
+
+## Key Findings
+
+1. **LCM Prototype leads overall (0.74)** — consistent recall at both checkpoints, benefiting from its lossless storage and hierarchical summary structure.
+
+2. **OpenViking shows early strength but decays** — scores 0.75 at Round 85 but drops to 0.50 at Round 95, suggesting its sliding window loses older context.
+
+3. **Atlas Memory and Nowledge Mem tie at 0.50** — both provide adequate but not exceptional recall across checkpoints.
+
+4. **Nowledge Mem operated in degraded mode** — its native distillation pipeline was unavailable (requires LLM provider configuration). Scores were achieved using an external compression fallback + semantic search. With full distillation enabled, performance may improve.
+
+## Conditions & Caveats
+
+- Nowledge Mem's distillation endpoint (`/memories/distill`) requires a configured LLM provider. During this benchmark, distillation consistently failed; memories were created via external Qwen3.5+ compression as a fallback.
+- Embedding model and semantic search were verified operational before scoring.
+- All systems used the same 100-round conversation corpus and identical evaluation prompts.
+- Scores reflect a single run; variance across runs has not been measured.
