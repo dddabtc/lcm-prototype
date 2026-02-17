@@ -1,7 +1,9 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Dict, List
+import json
+from dataclasses import asdict, dataclass, field
+from pathlib import Path
+from typing import Dict
 from uuid import uuid4
 
 from .store import Message
@@ -56,3 +58,25 @@ class SummaryDAG:
 
     def get_at_level(self, level: int) -> list[SummaryNode]:
         return [n for n in self.nodes.values() if n.level == level]
+
+    def save(self, path: str | Path) -> None:
+        p = Path(path)
+        p.parent.mkdir(parents=True, exist_ok=True)
+        payload = {
+            "nodes": [asdict(n) for n in self.nodes.values()],
+            "node_to_message_ids": self.node_to_message_ids,
+        }
+        p.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    @classmethod
+    def load(cls, path: str | Path) -> "SummaryDAG":
+        p = Path(path)
+        data = json.loads(p.read_text(encoding="utf-8"))
+        dag = cls()
+        for raw in data.get("nodes", []):
+            node = SummaryNode(**raw)
+            dag.nodes[node.id] = node
+        dag.node_to_message_ids = {
+            node_id: list(msg_ids) for node_id, msg_ids in data.get("node_to_message_ids", {}).items()
+        }
+        return dag

@@ -35,3 +35,17 @@ def test_get_at_level():
     lvl2 = dag.get_at_level(2)
     assert len(lvl1) == 2
     assert len(lvl2) == 1
+
+
+def test_save_load_roundtrip(tmp_path):
+    dag = SummaryDAG()
+    n1 = dag.add_summary([_msg(1)], "s1")
+    n2 = dag.add_summary([_msg(2)], "s2")
+    p = dag.add_summary([], "parent", child_node_ids=[n1.id, n2.id])
+
+    path = tmp_path / "dag.json"
+    dag.save(path)
+    loaded = SummaryDAG.load(path)
+
+    assert set(loaded.nodes.keys()) == set(dag.nodes.keys())
+    assert loaded.expand(p.id) == ["m1", "m2"]

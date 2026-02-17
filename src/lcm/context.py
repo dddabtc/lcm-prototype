@@ -73,13 +73,35 @@ class ContextManager:
             self.summary_node_ids.append(node.id)
             self._soft_future = None
 
-        while self._total_tokens() > self.tau_hard and len(self.recent_messages) > 1:
-            block_size = max(1, len(self.recent_messages) // 2)
-            block = self.recent_messages[:block_size]
-            self.recent_messages = self.recent_messages[block_size:]
-            text = self._compress_recent_block(block, target=self.tau_soft // 2)
-            node = self.dag.add_summary(block, text)
-            self.summary_node_ids.append(node.id)
+        while self._total_tokens() > self.tau_hard:
+            if len(self.recent_messages) > 1:
+                block_size = max(1, len(self.recent_messages) // 2)
+                block = self.recent_messages[:block_size]
+                self.recent_messages = self.recent_messages[block_size:]
+                text = self._compress_recent_block(block, target=self.tau_soft // 2)
+                node = self.dag.add_summary(block, text)
+                self.summary_node_ids.append(node.id)
+                continue
+
+            if len(self.summary_node_ids) >= 2:
+                child_count = max(2, len(self.summary_node_ids) // 2)
+                child_ids = self.summary_node_ids[:child_count]
+                child_messages = [
+                    Message(
+                        id=cid,
+                        timestamp="",
+                        role="summary",
+                        content=self.dag.nodes[cid].content,
+                    )
+                    for cid in child_ids
+                    if cid in self.dag.nodes
+                ]
+                text = self._compress_recent_block(child_messages, target=max(1, self.tau_soft // 3))
+                parent = self.dag.add_summary([], text, child_node_ids=child_ids)
+                self.summary_node_ids = [parent.id] + self.summary_node_ids[child_count:]
+                continue
+
+            break
 
     def get_active_context(self) -> dict:
         self._flush_soft_future()
