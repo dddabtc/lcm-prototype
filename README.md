@@ -41,12 +41,12 @@ Five system configurations tested on 100-round conversational recall (Qwen3.5+ a
 
 | System | Round 85 | Round 95 | Overall |
 |--------|----------|----------|---------|
+| Atlas Memory v2 + LCM | 0.75 | 0.75 | **0.75** |
+| OpenViking | 0.75 | 0.75 | **0.75** |
 | LCM Prototype | 0.74 | 0.74 | **0.74** |
-| Atlas + LCM | 0.74 | 0.73 | **0.73** |
-| OpenViking | 0.75 | 0.50 | 0.62 |
-| Atlas Memory | 0.50 | 0.50 | 0.50 |
-| Nowledge Mem | 0.50 | 0.50 | 0.50 |
+| Nowledge Mem | 0.62 | 0.62 | 0.62 |
+| Atlas Memory (baseline) | 0.50 | 0.50 | 0.50 |
 
-**Key finding**: Integrating LCM's three-stage compactor into Atlas Memory boosted recall from 0.50 → 0.73 (+46%), confirming the compaction strategy as the primary differentiator.
+**Key finding**: Atlas Memory v2 with LCM integration stores only compressed summaries (not raw turns) via semantic search, achieving 0.75 overall — a +50% boost over baseline Atlas (0.50) and matching OpenViking. The LCM three-stage compactor remains the primary differentiator.
 
-→ [Detailed Report](benchmarks/FOUR_SYSTEM_COMPARISON_REPORT.md)
+→ [Detailed Report](benchmarks/FIVE_SYSTEM_COMPARISON_REPORT.md)
