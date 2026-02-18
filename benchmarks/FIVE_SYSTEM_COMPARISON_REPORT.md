@@ -17,20 +17,20 @@ Benchmark comparing five long-horizon conversational memory systems on a 100-rou
 | A | OpenViking | Hierarchical summarization with sliding window |
 | B | LCM Prototype | Immutable store + summary DAG + multi-stage compaction |
 | C | Atlas Memory (baseline) | Graph-based memory with entity extraction + semantic search |
-| D | Atlas Memory v2 + LCM | LCM three-stage compactor + Atlas semantic search over compressed summaries |
+| D | Atlas v2 | LCM three-stage compactor + Atlas semantic search over compressed summaries |
 | E | Nowledge Mem | Thread-based storage + distillation + semantic search |
 
 ## Recall Accuracy (LLM Judge)
 
 | System | Round 85 | Round 95 | Overall |
 |--------|:--------:|:--------:|:-------:|
-| **Atlas Memory v2 + LCM** | 0.75 | 0.75 | **0.75** |
+| **Atlas v2** | 0.75 | 0.75 | **0.75** |
 | **OpenViking** | 0.75 | 0.75 | **0.75** |
 | **LCM Prototype** | 0.74 | 0.74 | **0.74** |
 | Nowledge Mem | 0.62 | 0.62 | 0.62 |
 | Atlas Memory (baseline) | 0.50 | 0.50 | 0.50 |
 
-## Per-Question Breakdown (System D — Atlas v2 + LCM)
+## Per-Question Breakdown (System D — Atlas v2)
 
 | Question | R85 | R95 | Notes |
 |----------|:---:|:---:|-------|
@@ -41,11 +41,11 @@ Benchmark comparing five long-horizon conversational memory systems on a 100-rou
 
 ## Key Findings
 
-1. **Atlas v2 + LCM ties for first place (0.75)** — matching OpenViking and surpassing pure LCM (0.74). The combination of LCM's lossless compression with Atlas's semantic search over compressed summaries yields the best results.
+1. **Atlas v2 ties for first place (0.75)** — matching OpenViking and surpassing pure LCM (0.74). The combination of LCM's lossless compression with Atlas's semantic search over compressed summaries yields the best results.
 
 2. **Critical fix: store summaries, not raw turns** — An earlier implementation stored raw conversation turns in Atlas and concatenated search results with LCM context. This caused information dilution, dropping R85 to 0.38. Storing only LCM-compressed summaries in Atlas restored R85 to 0.75.
 
-3. **LCM compactor remains the key differentiator** — Atlas baseline (0.50) vs Atlas+LCM (0.75) = +50% improvement, confirming the compaction strategy drives recall quality.
+3. **LCM compactor remains the key differentiator** — Atlas baseline (0.50) vs Atlas v2 (0.75) = +50% improvement, confirming the compaction strategy drives recall quality.
 
 4. **OpenViking improved from prior run** — Previously showed R95 decay (0.75→0.50); this run shows consistent 0.75 at both checkpoints, likely due to evaluation variance.
 
@@ -74,5 +74,5 @@ When Atlas stores only LCM summaries:
 
 ## Version History
 
-- **v1** (2026-02-15): Four-system comparison — LCM 0.74, Atlas+LCM 0.73, OpenViking 0.62, Atlas 0.50, Nowledge 0.50
-- **v2** (2026-02-17): Five-system with fixed Atlas v2 integration — Atlas v2+LCM 0.75, OpenViking 0.75, LCM 0.74, Nowledge 0.62, Atlas 0.50
+- **v1** (2026-02-15): Four-system comparison — LCM 0.74, Atlas v2 0.73, OpenViking 0.62, Atlas 0.50, Nowledge 0.50
+- **v2** (2026-02-17): Five-system with fixed Atlas v2 integration — Atlas v2 0.75, OpenViking 0.75, LCM 0.74, Nowledge 0.62, Atlas 0.50
