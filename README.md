@@ -35,9 +35,11 @@ uv pip install pytest tiktoken
 pytest
 ```
 
-## Benchmark: Memory System Comparison
+## Benchmarks
 
-Five system configurations tested on 100-round conversational recall (Qwen3.5+ as LLM Judge):
+### Custom Benchmark (100-round conversational recall)
+
+Questions asked mid-conversation at Round 85 and 95. Qwen3.5+ as LLM Judge.
 
 | System | Round 85 | Round 95 | Overall |
 |--------|----------|----------|---------|
@@ -45,8 +47,24 @@ Five system configurations tested on 100-round conversational recall (Qwen3.5+ a
 | OpenViking | 0.75 | 0.75 | **0.75** |
 | LCM Prototype | 0.74 | 0.74 | **0.74** |
 | Nowledge Mem | 0.62 | 0.62 | 0.62 |
-| Atlas Memory (baseline) | 0.50 | 0.50 | 0.50 |
-
-**Key finding**: Atlas v2 stores only compressed summaries (not raw turns) via semantic search, achieving 0.75 overall — a +50% boost over baseline Atlas (0.50) and matching OpenViking. The LCM three-stage compactor remains the primary differentiator.
+| Atlas baseline | 0.50 | 0.50 | 0.50 |
 
 → [Detailed Report](benchmarks/FIVE_SYSTEM_COMPARISON_REPORT.md)
+
+### LoCoMo Standard Benchmark (snap-research/locomo, ACL 2024)
+
+Questions asked after full conversation (retrieval over stored history). 3 conversations, 252 QA pairs.
+
+| System | Overall | single-hop | temporal | multi-hop | open-domain | adversarial |
+|--------|:-------:|:----------:|:--------:|:---------:|:-----------:|:-----------:|
+| Atlas baseline | **0.434** | 0.390 | 0.317 | 0.357 | **0.817** | 0.233 |
+| Atlas v2 | 0.299 | 0.383 | 0.275 | 0.381 | 0.398 | 0.125 |
+| OpenViking | 0.206 | 0.436 | 0.033 | 0.405 | 0.227 | 0.092 |
+| LCM | 0.145 | 0.285 | 0.172 | 0.143 | 0.097 | 0.050 |
+| Nowledge | 0.004 | 0.000 | 0.000 | 0.000 | 0.000 | 0.017 |
+
+→ [Detailed Report](benchmarks/LOCOMO_BENCHMARK_REPORT.md)
+
+### Key Insight
+
+Compression dominates during active conversation (custom benchmark), but raw semantic search wins for post-conversation retrieval (LoCoMo). The optimal memory system needs both modes.
